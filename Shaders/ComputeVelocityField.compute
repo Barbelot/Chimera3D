@@ -1,0 +1,17 @@
+
+#pragma kernel CSMain
+#define NUM_THREADS 8
+
+float4 _Size;
+
+StructuredBuffer<float3> _Velocity;
+StructuredBuffer<float> _Density;
+RWTexture3D<float4> _VelocityField;
+
+[numthreads(NUM_THREADS,NUM_THREADS,NUM_THREADS)]
+void CSMain (int3 id : SV_DispatchThreadID)
+{
+    int idx = id.x + id.y*_Size.x + id.z*_Size.x*_Size.y;
+	
+    _VelocityField[id] = float4(_Velocity[idx], _Density[idx]);
+}
