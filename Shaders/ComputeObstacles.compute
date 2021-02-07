@@ -14,6 +14,7 @@ void CSMain (int3 id : SV_DispatchThreadID)
     
     float obstacle = 0;
     
+    //Box
     if(id.x-1 < 0) obstacle = 1;
     if(id.x+1 > (int)_Size.x-1) obstacle = 1;
     
@@ -23,6 +24,9 @@ void CSMain (int3 id : SV_DispatchThreadID)
     if(id.z-1 < 0) obstacle = 1;
     if(id.z+1 > (int)_Size.z-1) obstacle = 1;
     
+    //Sphere
+    if(length(id - _Size.xyz * 0.5) > _Size.x * 0.5) obstacle = 1;
+
     _Write[idx] = obstacle;
 }
 

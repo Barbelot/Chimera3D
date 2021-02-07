@@ -18,13 +18,12 @@ namespace Chimera3D
 		//Must be a pow2 number
 		const int NUM_THREADS = 8;
 
-		//You can change this or even use Time.DeltaTime but large time steps can cause numerical errors
-		const float TIME_STEP = 0.1f;
-
 		[Header("ID")]
 		public string simulationID = "Main";
 
 		[Header("Simulation")]
+		//You can change this or even use Time.DeltaTime but large time steps can cause numerical errors
+		public float m_timeStep = 0.1f;
 		public ADVECTION m_advectionType = ADVECTION.NORMAL;
 		public int m_width = 128;
 		public int m_height = 128;
@@ -82,7 +81,6 @@ namespace Chimera3D
 		}
 
 		void Start() {
-			QualitySettings.vSyncCount = 1;
 			Application.targetFrameRate = 60;
 		}
 
@@ -91,7 +89,7 @@ namespace Chimera3D
 			if (!m_initialized)
 				Initialize();
 
-			float dt = TIME_STEP;
+			float dt = m_timeStep;
 
 			//First off advect any buffers that contain physical quantities like density or temperature by the 
 			//velocity field. Advection is what moves values around.
