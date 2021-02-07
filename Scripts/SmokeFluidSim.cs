@@ -38,6 +38,9 @@ public class SmokeFluidSim : MonoBehaviour
 
 	float m_ambientTemperature = 0.0f;
 
+	[Header("Raycast Renderer")]
+	public Renderer raycastRenderer;
+
 	[Header("VFX")]
 	public VisualEffect vfx;
 
@@ -177,10 +180,11 @@ public class SmokeFluidSim : MonoBehaviour
 		//rotation of box not support because ray cast in shader uses a AABB intersection
 		transform.rotation = Quaternion.identity;
 
-		GetComponent<Renderer>().material.SetVector("_Translate", transform.localPosition);
-		GetComponent<Renderer>().material.SetVector("_Scale", transform.localScale);
-		GetComponent<Renderer>().material.SetBuffer("_Density", m_density[READ]);
-		GetComponent<Renderer>().material.SetVector("_Size", m_size);
+		//Bind raycast material
+		raycastRenderer.material.SetVector("_Translate", raycastRenderer.transform.position);
+		raycastRenderer.material.SetVector("_Scale", raycastRenderer.transform.localScale);
+		raycastRenderer.material.SetBuffer("_Density", m_density[READ]);
+		raycastRenderer.material.SetVector("_Size", m_size);
 
 	}
 
