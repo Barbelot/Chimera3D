@@ -33,6 +33,7 @@ namespace Chimera3D
 		//public float m_densityAmount = 1.0f;
 		public float m_densityDissipation = 0.999f;
 		public float m_densityBuoyancy = 1.0f;
+		[Range(0, 1)] public float m_densityBuoyancyCircularity = 0.0f;
 		public float m_densityWeight = 0.0125f;
 		//public float m_temperatureAmount = 10.0f;
 		public float m_temperatureDissipation = 0.995f;
@@ -63,6 +64,7 @@ namespace Chimera3D
 		[Header("Debug")]
 		public Material texture3DSliceMaterial;
 		public RenderTexture m_velocityField;
+		public float debugFloat;
 
 		Vector4 m_size;
 		ComputeBuffer[] m_density, m_velocity, m_pressure, m_temperature, m_phi;
@@ -89,7 +91,7 @@ namespace Chimera3D
 			if (!m_initialized)
 				Initialize();
 
-			float dt = m_timeStep;
+			float dt = Time.deltaTime * m_timeStep;
 
 			//First off advect any buffers that contain physical quantities like density or temperature by the 
 			//velocity field. Advection is what moves values around.
@@ -168,7 +170,7 @@ namespace Chimera3D
 
 			//Put all dimension sizes in a vector for easy parsing to shader and also prevents user changing
 			//dimension sizes during play
-			m_size = new Vector4(m_width, m_height, m_depth, 0.0f);
+			m_size = new Vector4(m_width, m_height, m_depth, 0);
 
 			//Create all the buffers needed
 			int SIZE = m_width * m_height * m_depth;
@@ -271,7 +273,7 @@ namespace Chimera3D
 
 		void ApplyBuoyancy(float dt) {
 			m_applyBuoyancy.SetVector("_Size", m_size);
-			m_applyBuoyancy.SetVector("_Up", new Vector4(0, 1, 0, 0));
+			m_applyBuoyancy.SetVector("_Up", new Vector4(0, 1, 0, m_densityBuoyancyCircularity));
 			m_applyBuoyancy.SetFloat("_Buoyancy", m_densityBuoyancy);
 			m_applyBuoyancy.SetFloat("_AmbientTemperature", m_ambientTemperature);
 			m_applyBuoyancy.SetFloat("_Weight", m_densityWeight);
