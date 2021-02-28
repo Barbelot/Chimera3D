@@ -70,7 +70,7 @@ namespace Chimera3D
 		ComputeBuffer[] m_density, m_velocity, m_pressure, m_temperature, m_phi;
 		ComputeBuffer m_temp3f, m_obstacles;
 
-		private List<FluidEmitter> m_emitters;
+		private List<FluidEmitter3D> m_emitters;
 
 		private bool m_initialized = false;
 
@@ -146,10 +146,12 @@ namespace Chimera3D
 			transform.rotation = Quaternion.identity;
 
 			//Bind raycast material
-			raycastRenderer.material.SetVector("_Translate", raycastRenderer.transform.position);
-			raycastRenderer.material.SetVector("_Scale", raycastRenderer.transform.localScale);
-			raycastRenderer.material.SetBuffer("_Density", m_density[READ]);
-			raycastRenderer.material.SetVector("_Size", m_size);
+			if (raycastRenderer) {
+				raycastRenderer.material.SetVector("_Translate", raycastRenderer.transform.position);
+				raycastRenderer.material.SetVector("_Scale", raycastRenderer.transform.localScale);
+				raycastRenderer.material.SetBuffer("_Density", m_density[READ]);
+				raycastRenderer.material.SetVector("_Size", m_size);
+			}
 
 		}
 
@@ -210,11 +212,14 @@ namespace Chimera3D
 			ComputeObstacles();
 
 			//Bind VFX
-			vfx.SetTexture("VelocityField", m_velocityField);
-			vfx.SetVector3("FieldSize", transform.localScale);
+			if (vfx) {
+				vfx.SetTexture("VelocityField", m_velocityField);
+				vfx.SetVector3("FieldSize", transform.localScale);
+			}
 
 			//Bind Debug
-			texture3DSliceMaterial.SetTexture("InputTexture3D", m_velocityField);
+			if(texture3DSliceMaterial)
+				texture3DSliceMaterial.SetTexture("InputTexture3D", m_velocityField);
 
 			//Initialize emitters
 			InitializeEmitters();
@@ -455,10 +460,10 @@ namespace Chimera3D
 
 		void CreateEmittersList() {
 
-			m_emitters = new List<FluidEmitter>();
+			m_emitters = new List<FluidEmitter3D>();
 		}
 
-		public void AddEmitter(FluidEmitter emitter) {
+		public void AddEmitter(FluidEmitter3D emitter) {
 
 			if (!m_initialized)
 				Initialize();
@@ -466,7 +471,7 @@ namespace Chimera3D
 			m_emitters.Add(emitter);
 		}
 
-		public void RemoveEmitter(FluidEmitter emitter) {
+		public void RemoveEmitter(FluidEmitter3D emitter) {
 
 			if (!m_emitters.Contains(emitter))
 				return;

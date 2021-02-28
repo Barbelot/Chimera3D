@@ -5,7 +5,7 @@ using UnityEngine.VFX;
 
 namespace Chimera3D
 {
-    public class FluidEmitter : MonoBehaviour
+    public class FluidEmitter3D : MonoBehaviour
     {
 		[Header("Simulation")]
 		public string simulationID = "Main";
