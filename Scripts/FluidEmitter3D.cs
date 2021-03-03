@@ -78,7 +78,7 @@ namespace Chimera3D
 			_simulation.AddEmitter(this);
 
 			vfx.SetTexture("VelocityField", _simulation.m_velocityField);
-			vfx.SetVector3("FieldSize", _simulation.transform.localScale);
+			vfx.SetVector3("FieldSize", _simulation.m_size);
 		}
 
 		void UpdateEmitter() {

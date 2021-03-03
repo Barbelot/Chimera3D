@@ -2,7 +2,7 @@
 #pragma kernel CSMain
 #define NUM_THREADS 8
 
-float4 _Size, _Up;
+float4 _Resolution, _Up;
 float _AmbientTemperature, _DeltaTime, _Buoyancy, _Weight;
 
 RWStructuredBuffer<float3> _Write;
@@ -13,28 +13,28 @@ StructuredBuffer<float> _Density, _Temperature;
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
 
-    int idx = id.x + id.y*_Size.x + id.z*_Size.x*_Size.y;
+    int idx = id.x + id.y*_Resolution.x + id.z*_Resolution.x*_Resolution.y;
     
     float T = _Temperature[idx];
     float D = _Density[idx];
     float3 V = _Velocity[idx];
     
-    float3 dir = float3(id.xyz) - (_Size.xyz - float3(1, 1, 1)) * 0.5f;
+    float3 dir = float3(id.xyz) - (_Resolution.xyz - float3(1, 1, 1)) * 0.5f;
 
     if (length(dir) > 0)
         dir = normalize(dir);
     else
         dir = _Up.xyz;
-    //dir = normalize(float3(float(id.x) - _Size.x * 0.5f, float(id.y) - _Size.y * 0.5f, float(id.z) - _Size.z * 0.5f));
-    //if (float(id.z)>_Size.z * 0.5f)
+    //dir = normalize(float3(float(id.x) - _Resolution.x * 0.5f, float(id.y) - _Resolution.y * 0.5f, float(id.z) - _Resolution.z * 0.5f));
+    //if (float(id.z)>_Resolution.z * 0.5f)
     //    dir = float3(1, 0, 0);
     //else
     //    dir = float3(-1, 0, 0);
 
     //dir = normalize(float3(id.xyz) - float3(1.0f, 1.0f, 1.0f));
     //dir = normalize(float3(id.xyz));
-    //dir = float3(id.xyz) - _Size.xyz * 0.5f;
-    //dir = float3((float)id.x - (_Size.x * 0.5f), (float)id.y - (_Size.y * 0.5f), (float)id.z - (_Size.z * 0.5f));
+    //dir = float3(id.xyz) - _Resolution.xyz * 0.5f;
+    //dir = float3((float)id.x - (_Resolution.x * 0.5f), (float)id.y - (_Resolution.y * 0.5f), (float)id.z - (_Resolution.z * 0.5f));
 
     if (T > _AmbientTemperature)
         V += (_DeltaTime * (T - _AmbientTemperature) * _Buoyancy - D * _Weight) * normalize(lerp(_Up.xyz, dir, _Up.w));

@@ -2,7 +2,7 @@
 #pragma kernel CSMain
 #define NUM_THREADS 8
 
-float4 _Size;
+float4 _Resolution;
 
 RWStructuredBuffer<float3> _Write;
 StructuredBuffer<float> _Pressure, _Obstacles;
@@ -11,7 +11,7 @@ StructuredBuffer<float3> _Velocity;
 [numthreads(NUM_THREADS,NUM_THREADS,NUM_THREADS)]
 void CSMain (int3 id : SV_DispatchThreadID)
 {
-	int idx = id.x + id.y*_Size.x + id.z*_Size.x*_Size.y;
+	int idx = id.x + id.y*_Resolution.x + id.z*_Resolution.x*_Resolution.y;
 
 	if(_Obstacles[idx] > 0.1)
 	{
@@ -19,14 +19,14 @@ void CSMain (int3 id : SV_DispatchThreadID)
 		 return;
 	}
 
-    int idxL = max(0, id.x-1) + id.y*_Size.x + id.z*_Size.x*_Size.y;
-    int idxR = min(_Size.x-1, id.x+1) + id.y*_Size.x + id.z*_Size.x*_Size.y;
+    int idxL = max(0, id.x-1) + id.y*_Resolution.x + id.z*_Resolution.x*_Resolution.y;
+    int idxR = min(_Resolution.x-1, id.x+1) + id.y*_Resolution.x + id.z*_Resolution.x*_Resolution.y;
     
-    int idxB = id.x + max(0, id.y-1)*_Size.x + id.z*_Size.x*_Size.y;
-    int idxT = id.x + min(_Size.y-1, id.y+1)*_Size.x + id.z*_Size.x*_Size.y;
+    int idxB = id.x + max(0, id.y-1)*_Resolution.x + id.z*_Resolution.x*_Resolution.y;
+    int idxT = id.x + min(_Resolution.y-1, id.y+1)*_Resolution.x + id.z*_Resolution.x*_Resolution.y;
     
-    int idxD = id.x + id.y*_Size.x + max(0, id.z-1)*_Size.x*_Size.y;
-    int idxU = id.x + id.y*_Size.x + min(_Size.z-1, id.z+1)*_Size.x*_Size.y;
+    int idxD = id.x + id.y*_Resolution.x + max(0, id.z-1)*_Resolution.x*_Resolution.y;
+    int idxU = id.x + id.y*_Resolution.x + min(_Resolution.z-1, id.z+1)*_Resolution.x*_Resolution.y;
     
 	float L = _Pressure[ idxL ];
     float R = _Pressure[ idxR ];

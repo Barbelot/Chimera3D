@@ -33,7 +33,7 @@ Shader "3DFluidSim/FireRayCast"
 			sampler2D _FireGradient;
 			float4 _SmokeColor;
 			float _SmokeAbsorption, _FireAbsorption;
-			uniform float3 _Translate, _Scale, _Size;
+			uniform float3 _Translate, _Scale, _Resolution;
 			
 			StructuredBuffer<float> _Density, _Reaction;
 		
@@ -92,9 +92,9 @@ Shader "3DFluidSim/FireRayCast"
 				float fy = uv.y-y;
 				float fz = uv.z-z;
 				
-				int xp1 = min(_Size.x-1, x+1);
-				int yp1 = min(_Size.y-1, y+1);
-				int zp1 = min(_Size.z-1, z+1);
+				int xp1 = min(_Resolution.x-1, x+1);
+				int yp1 = min(_Resolution.y-1, y+1);
+				int zp1 = min(_Resolution.z-1, z+1);
 				
 				float x0 = buffer[x+y*X+z*XY] * (1.0f-fx) + buffer[xp1+y*X+z*XY] * fx;
 				float x1 = buffer[x+y*X+zp1*XY] * (1.0f-fx) + buffer[xp1+y*X+zp1*XY] * fx;
@@ -147,9 +147,9 @@ Shader "3DFluidSim/FireRayCast"
    				for(int i=0; i < NUM_SAMPLES; i++, start += ds) 
    				{
    				 
-   					float D = SampleBilinear(_Density, start, _Size);
+   					float D = SampleBilinear(_Density, start, _Resolution);
    					
-   					float R = SampleBilinear(_Reaction, start, _Size);
+   					float R = SampleBilinear(_Reaction, start, _Resolution);
    				 	
         			fireAlpha *= 1.0-saturate(R*stepSize*_FireAbsorption);
         			

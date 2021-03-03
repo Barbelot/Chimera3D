@@ -30,9 +30,10 @@ Shader "3DFluidSim/SmokeRayCast"
 			
 			float4 _SmokeColor;
 			float _SmokeAbsorption;
-			uniform float3 _Translate, _Scale, _Size;
+			uniform float3 _Translate, _Scale, _Resolution;
 			
 			StructuredBuffer<float> _Density;
+			StructuredBuffer<float3> _Velocity;
 		
 			struct v2f 
 			{
@@ -89,9 +90,9 @@ Shader "3DFluidSim/SmokeRayCast"
 				float fy = uv.y-y;
 				float fz = uv.z-z;
 				
-				int xp1 = min(_Size.x-1, x+1);
-				int yp1 = min(_Size.y-1, y+1);
-				int zp1 = min(_Size.z-1, z+1);
+				int xp1 = min(_Resolution.x-1, x+1);
+				int yp1 = min(_Resolution.y-1, y+1);
+				int zp1 = min(_Resolution.z-1, z+1);
 				
 				float x0 = buffer[x+y*X+z*XY] * (1.0f-fx) + buffer[xp1+y*X+z*XY] * fx;
 				float x1 = buffer[x+y*X+zp1*XY] * (1.0f-fx) + buffer[xp1+y*X+zp1*XY] * fx;
@@ -104,6 +105,39 @@ Shader "3DFluidSim/SmokeRayCast"
 				
 				return z0 * (1.0f-fy) + z1 * fy;
 				
+			}
+
+			float3 SampleBilinearFloat3(StructuredBuffer<float3> buffer, float3 uv, float3 size)
+			{
+				uv = saturate(uv);
+				uv = uv * (size - 1.0);
+
+				int x = uv.x;
+				int y = uv.y;
+				int z = uv.z;
+
+				int X = size.x;
+				int XY = size.x * size.y;
+
+				float fx = uv.x - x;
+				float fy = uv.y - y;
+				float fz = uv.z - z;
+
+				int xp1 = min(_Resolution.x - 1, x + 1);
+				int yp1 = min(_Resolution.y - 1, y + 1);
+				int zp1 = min(_Resolution.z - 1, z + 1);
+
+				float3 x0 = buffer[x + y * X + z * XY] * (1.0f - fx) + buffer[xp1 + y * X + z * XY] * fx;
+				float3 x1 = buffer[x + y * X + zp1 * XY] * (1.0f - fx) + buffer[xp1 + y * X + zp1 * XY] * fx;
+
+				float3 x2 = buffer[x + yp1 * X + z * XY] * (1.0f - fx) + buffer[xp1 + yp1 * X + z * XY] * fx;
+				float x3 = buffer[x + yp1 * X + zp1 * XY] * (1.0f - fx) + buffer[xp1 + yp1 * X + zp1 * XY] * fx;
+
+				float3 z0 = x0 * (1.0f - fz) + x1 * fz;
+				float3 z1 = x2 * (1.0f - fz) + x3 * fz;
+
+				return z0 * (1.0f - fy) + z1 * fy;
+
 			}
 
 			
@@ -145,9 +179,11 @@ Shader "3DFluidSim/SmokeRayCast"
    				for(int i=0; i < NUM_SAMPLES; i++, start += ds) 
    				{
    				 
-   					float D = SampleBilinear(_Density, start, _Size);
-   				 	
+   					float D = SampleBilinear(_Density, start, _Resolution);
         			alpha *= 1.0-saturate(D*stepSize*_SmokeAbsorption);
+
+					//float3 V = SampleBilinearFloat3(_Velocity, start, _Resolution);
+					//alpha *= 1.0 - saturate(length(V) * stepSize * _SmokeAbsorption);
         			
         			if(alpha <= 0.01) break;
 			    }
