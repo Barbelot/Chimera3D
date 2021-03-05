@@ -11,6 +11,7 @@ namespace Chimera3D
 		public string simulationID = "Main";
 
 		[Header("Emission")]
+		public bool emitFluid = true;
 		public float radius = 0.05f;
 		public float densityAmount = 1;
 		public float temperatureAmount = 10;
@@ -75,10 +76,15 @@ namespace Chimera3D
 			if (!_simulation)
 				return;
 
-			_simulation.AddEmitter(this);
+			if (emitFluid)
+				_simulation.AddEmitter(this);
+			else
+				_simulation.Initialize();
 
-			vfx.SetTexture("VelocityField", _simulation.m_velocityField);
-			vfx.SetVector3("FieldSize", _simulation.m_size);
+			if (vfx) {
+				vfx.SetTexture("VelocityField", _simulation.m_velocityField);
+				vfx.SetVector3("FieldSize", _simulation.m_size);
+			}
 		}
 
 		void UpdateEmitter() {

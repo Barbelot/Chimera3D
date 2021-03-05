@@ -30,14 +30,14 @@ namespace Chimera3D
 		public int m_iterations = 10;
 		public float m_vorticityStrength = 1.0f;
 		//public float m_densityAmount = 1.0f;
-		public float m_densityDissipation = 0.999f;
+		[Range(0, 1)] public float m_densityDissipation = 0.999f;
 		public float m_densityBuoyancy = 1.0f;
 		[Range(0, 1)] public float m_densityBuoyancySphericality = 0.0f;
 		public Vector3 m_densityBuoyancyDirection = Vector3.up;
 		public float m_densityWeight = 0.0125f;
 		//public float m_temperatureAmount = 10.0f;
-		public float m_temperatureDissipation = 0.995f;
-		public float m_velocityDissipation = 0.995f;
+		[Range(0, 1)] public float m_temperatureDissipation = 0.995f;
+		[Range(0, 1)] public float m_velocityDissipation = 0.995f;
 		//public float m_inputRadius = 0.04f;
 		//public Vector4 m_inputPos = new Vector4(0.5f, 0.1f, 0.5f, 0.0f);
 
@@ -120,8 +120,8 @@ namespace Chimera3D
 
 			for (int i = 0; i < m_emitters.Count; i++) {
 				//Adds a certain amount of density (the visible smoke) and temperate
-				ApplyImpulse(dt, m_emitters[i].radius, m_emitters[i].densityAmount, m_emitters[i].transform.position + Vector3.one * 0.5f, m_density);
-				ApplyImpulse(dt, m_emitters[i].radius, m_emitters[i].temperatureAmount, m_emitters[i].transform.position + Vector3.one * 0.5f, m_temperature);
+				ApplyImpulse(dt, m_emitters[i].radius, m_emitters[i].densityAmount, GetBufferPosition(m_emitters[i].transform.position), m_density);
+				ApplyImpulse(dt, m_emitters[i].radius, m_emitters[i].temperatureAmount, GetBufferPosition(m_emitters[i].transform.position), m_temperature);
 			}
 
 			//The fuild sim math tends to remove the swirling movement of fluids.
@@ -165,7 +165,10 @@ namespace Chimera3D
 
 		#endregion
 
-		void Initialize() {
+		public void Initialize() {
+
+			if (m_initialized)
+				return;
 
 			//Dimension sizes must be pow2 numbers
 			m_resolution = new Vector3Int(Mathf.ClosestPowerOfTwo(m_resolution.x), Mathf.ClosestPowerOfTwo(m_resolution.y), Mathf.ClosestPowerOfTwo(m_resolution.z));
@@ -250,6 +253,11 @@ namespace Chimera3D
 			ComputeBuffer tmp = buffer[READ];
 			buffer[READ] = buffer[WRITE];
 			buffer[WRITE] = tmp;
+		}
+
+		Vector3 GetBufferPosition(Vector3 worldPos) {
+
+			return new Vector3(worldPos.x / m_size.x, worldPos.y / m_size.y, worldPos.z / m_size.z) + Vector3.one * 0.5f;
 		}
 
 		#region Kernel Functions
