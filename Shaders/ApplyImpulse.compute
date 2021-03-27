@@ -1,8 +1,10 @@
-
 #define NUM_THREADS 8
+
+#include "SimplexNoise3D.hlsl"
 
 float _Radius, _Amount, _DeltaTime, _Extinguishment;
 float4 _Pos, _Resolution;
+float4 _NoiseSpeedScale, _NoiseOctavesTime;
 
 RWStructuredBuffer<float> _Write;
 StructuredBuffer<float> _Read, _Reaction;
@@ -21,6 +23,21 @@ void GaussImpulse(uint3 id : SV_DispatchThreadID)
 	int idx = id.x + id.y*_Resolution.x + id.z*_Resolution.x*_Resolution.y;
 	
     _Write[idx] = _Read[idx] + amount;
+}
+
+#pragma kernel NoiseImpulse
+
+[numthreads(NUM_THREADS, NUM_THREADS, NUM_THREADS)]
+void NoiseImpulse(uint3 id : SV_DispatchThreadID)
+{
+	float3 uv = id / (_Resolution.xyz - 1.0f);
+
+	float noise = SimplexNoise_Octaves(uv, _NoiseSpeedScale.w, _NoiseSpeedScale.xyz, uint(_NoiseOctavesTime.x), _NoiseOctavesTime.y, _NoiseOctavesTime.z, _NoiseOctavesTime.w);
+	float amount = noise * _Amount * _DeltaTime;
+
+	int idx = id.x + id.y * _Resolution.x + id.z * _Resolution.x * _Resolution.y;
+
+	_Write[idx] = _Read[idx] + amount;
 }
 
 #pragma kernel ExtinguishmentImpulse

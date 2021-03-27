@@ -41,6 +41,15 @@ namespace Chimera3D
 		//public float m_inputRadius = 0.04f;
 		//public Vector4 m_inputPos = new Vector4(0.5f, 0.1f, 0.5f, 0.0f);
 
+		[Space]
+		public float m_noiseDensity = 0.0f;
+		public float m_noiseTemperature = 0.0f;
+		public float m_noiseScale = 0.5f;
+		public Vector3 m_noiseSpeed = Vector3.zero;
+		[Range(1, 8)]public int m_noiseOctaves = 1;
+		public float m_noiseOctaveScale = 2;
+		public float m_noiseOctaveAttenuation = 0.5f;
+
 		float m_ambientTemperature = 0.0f;
 
 		[Header("Raycast Renderer")]
@@ -69,6 +78,8 @@ namespace Chimera3D
 		Vector4 m_cachedResolution;
 		ComputeBuffer[] m_density, m_velocity, m_pressure, m_temperature, m_phi;
 		ComputeBuffer m_temp3f, m_obstacles;
+
+		int m_gaussImpulseKernel, m_noiseImpulseKernel;
 
 		private List<FluidEmitter3D> m_emitters;
 
@@ -118,10 +129,18 @@ namespace Chimera3D
 			//Apply the effect the sinking colder smoke has on the velocity field
 			ApplyBuoyancy(dt);
 
+			//Apply noise impulse
+			if (m_noiseDensity != 0)
+				ApplyNoiseImpulse(dt, m_noiseDensity, m_density);
+
+			if(m_noiseTemperature != 0)
+				ApplyNoiseImpulse(dt, m_noiseTemperature, m_temperature);
+
+			//Apply emitter impulse
 			for (int i = 0; i < m_emitters.Count; i++) {
 				//Adds a certain amount of density (the visible smoke) and temperate
-				ApplyImpulse(dt, m_emitters[i].radius, m_emitters[i].densityAmount, GetBufferPosition(m_emitters[i].transform.position), m_density);
-				ApplyImpulse(dt, m_emitters[i].radius, m_emitters[i].temperatureAmount, GetBufferPosition(m_emitters[i].transform.position), m_temperature);
+				ApplyGaussImpulse(dt, m_emitters[i].radius, m_emitters[i].densityAmount, GetBufferPosition(m_emitters[i].transform.position), m_density);
+				ApplyGaussImpulse(dt, m_emitters[i].radius, m_emitters[i].temperatureAmount, GetBufferPosition(m_emitters[i].transform.position), m_temperature);
 			}
 
 			//The fuild sim math tends to remove the swirling movement of fluids.
@@ -147,12 +166,12 @@ namespace Chimera3D
 
 			//Bind raycast material
 			if (raycastRenderer) {
-				raycastRenderer.material.SetVector("_Translate", raycastRenderer.transform.position);
-				raycastRenderer.material.SetVector("_Scale", m_size);
+				raycastRenderer.sharedMaterial.SetVector("_Translate", raycastRenderer.transform.position);
+				raycastRenderer.sharedMaterial.SetVector("_Scale", m_size);
 				raycastRenderer.transform.localScale = m_size;
-				raycastRenderer.material.SetBuffer("_Density", m_density[READ]);
-				raycastRenderer.material.SetBuffer("_Velocity", m_velocity[READ]);
-				raycastRenderer.material.SetVector("_Resolution", m_cachedResolution);
+				raycastRenderer.sharedMaterial.SetBuffer("_Density", m_density[READ]);
+				raycastRenderer.sharedMaterial.SetBuffer("_Velocity", m_velocity[READ]);
+				raycastRenderer.sharedMaterial.SetVector("_Resolution", m_cachedResolution);
 			}
 
 		}
@@ -169,6 +188,10 @@ namespace Chimera3D
 
 			if (m_initialized)
 				return;
+
+			//Get kernels
+			m_gaussImpulseKernel = m_applyImpulse.FindKernel("GaussImpulse");
+			m_noiseImpulseKernel = m_applyImpulse.FindKernel("NoiseImpulse");
 
 			//Dimension sizes must be pow2 numbers
 			m_resolution = new Vector3Int(Mathf.ClosestPowerOfTwo(m_resolution.x), Mathf.ClosestPowerOfTwo(m_resolution.y), Mathf.ClosestPowerOfTwo(m_resolution.z));
@@ -269,17 +292,32 @@ namespace Chimera3D
 
 		}
 
-		void ApplyImpulse(float dt, float radius, float amount, Vector4 pos, ComputeBuffer[] buffer) {
+		void ApplyGaussImpulse(float dt, float radius, float amount, Vector4 pos, ComputeBuffer[] buffer) {
 			m_applyImpulse.SetVector("_Resolution", m_cachedResolution);
 			m_applyImpulse.SetFloat("_Radius", radius);
 			m_applyImpulse.SetFloat("_Amount", amount);
 			m_applyImpulse.SetFloat("_DeltaTime", dt);
 			m_applyImpulse.SetVector("_Pos", pos);
 
-			m_applyImpulse.SetBuffer(0, "_Read", buffer[READ]);
-			m_applyImpulse.SetBuffer(0, "_Write", buffer[WRITE]);
+			m_applyImpulse.SetBuffer(m_gaussImpulseKernel, "_Read", buffer[READ]);
+			m_applyImpulse.SetBuffer(m_gaussImpulseKernel, "_Write", buffer[WRITE]);
 
-			m_applyImpulse.Dispatch(0, (int)m_cachedResolution.x / NUM_THREADS, (int)m_cachedResolution.y / NUM_THREADS, (int)m_cachedResolution.z / NUM_THREADS);
+			m_applyImpulse.Dispatch(m_gaussImpulseKernel, (int)m_cachedResolution.x / NUM_THREADS, (int)m_cachedResolution.y / NUM_THREADS, (int)m_cachedResolution.z / NUM_THREADS);
+
+			Swap(buffer);
+		}
+
+		void ApplyNoiseImpulse(float dt, float amount, ComputeBuffer[] buffer) {
+			m_applyImpulse.SetVector("_Resolution", m_cachedResolution);
+			m_applyImpulse.SetFloat("_Amount", amount);
+			m_applyImpulse.SetFloat("_DeltaTime", dt);
+			m_applyImpulse.SetVector("_NoiseSpeedScale", new Vector4(m_noiseSpeed.x, m_noiseSpeed.y, m_noiseSpeed.z, m_noiseScale));
+			m_applyImpulse.SetVector("_NoiseOctavesTime", new Vector4(m_noiseOctaves, m_noiseOctaveScale, m_noiseOctaveAttenuation, Time.time));
+
+			m_applyImpulse.SetBuffer(m_noiseImpulseKernel, "_Read", buffer[READ]);
+			m_applyImpulse.SetBuffer(m_noiseImpulseKernel, "_Write", buffer[WRITE]);
+
+			m_applyImpulse.Dispatch(m_noiseImpulseKernel, (int)m_cachedResolution.x / NUM_THREADS, (int)m_cachedResolution.y / NUM_THREADS, (int)m_cachedResolution.z / NUM_THREADS);
 
 			Swap(buffer);
 		}
