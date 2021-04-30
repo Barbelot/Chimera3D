@@ -12,12 +12,18 @@ namespace Chimera3D
 
 		[Header("Emission")]
 		public bool emitFluid = true;
-		public float radius = 0.05f;
+		public float fluidEmissionRadius = 0.05f;
 		public float densityAmount = 1;
+		public bool linkTemperatureToDensity = false;
 		public float temperatureAmount = 10;
+		public float velocityAmount = 0;
+		public Vector3 velocityDirection = Vector3.up;
+		public bool sphericalVelocity = false;
 
 		[Header("VFX")]
 		public VisualEffect vfx;
+		public VisualEffect vfx2;
+		public bool linkEmissionRadiusToFluid = true;
 
 		[Header("Gizmos")]
 		public bool showGizmos = true;
@@ -62,7 +68,7 @@ namespace Chimera3D
 
 			Gizmos.color = Color.yellow;
 
-			Gizmos.DrawWireSphere(transform.position, radius);
+			Gizmos.DrawWireSphere(transform.position, fluidEmissionRadius);
 		}
 
 		void AddEmitter() {
@@ -85,6 +91,11 @@ namespace Chimera3D
 				vfx.SetTexture("VelocityField", _simulation.m_velocityField);
 				vfx.SetVector3("FieldSize", _simulation.m_size);
 			}
+
+			if (vfx2) {
+				vfx2.SetTexture("VelocityField", _simulation.m_velocityField);
+				vfx2.SetVector3("FieldSize", _simulation.m_size);
+			}
 		}
 
 		void UpdateEmitter() {
@@ -106,7 +117,16 @@ namespace Chimera3D
 
 			vfx.SetVector3("EmissionPosition_position", transform.position);
 			vfx.SetVector3("EmissionPreviousPosition_position", previousPositionReady ? previousPosition : transform.position);
-			vfx.SetFloat("EmissionRadius", radius);
+			if(linkEmissionRadiusToFluid)
+				vfx.SetFloat("EmissionRadius", fluidEmissionRadius);
+
+			if (!vfx2)
+				return;
+
+			vfx2.SetVector3("EmissionPosition_position", transform.position);
+			vfx2.SetVector3("EmissionPreviousPosition_position", previousPositionReady ? previousPosition : transform.position);
+			if (linkEmissionRadiusToFluid)
+				vfx2.SetFloat("EmissionRadius", fluidEmissionRadius);
 		}
 	}
 }

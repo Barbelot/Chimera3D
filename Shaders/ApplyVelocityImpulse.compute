@@ -1,0 +1,49 @@
+#define NUM_THREADS 8
+
+float _Radius, _Amount, _DeltaTime;
+float4 _Pos, _Resolution, _Direction;
+
+RWStructuredBuffer<float3> _Write;
+StructuredBuffer<float3> _Read;
+
+#pragma kernel VelocityImpulse
+
+[numthreads(NUM_THREADS,NUM_THREADS,NUM_THREADS)]
+void VelocityImpulse(uint3 id : SV_DispatchThreadID)
+{
+	float3 pos = id / (_Resolution.xyz - 1.0f) - _Pos.xyz;
+	float mag = pos.x * pos.x + pos.y * pos.y + pos.z * pos.z;
+	float rad2 = _Radius * _Radius;
+
+	float amount = exp(-mag / rad2) * _Amount * _DeltaTime;
+
+	int idx = id.x + id.y*_Resolution.x + id.z*_Resolution.x*_Resolution.y;
+	
+	float3 direction = _Direction.xyz;
+
+	if (_Direction.w == 1) {
+		direction = float3(id.xyz) - (_Resolution.xyz - float3(1, 1, 1)) * 0.5f;
+		if (length(direction) > 0)
+			direction = normalize(direction);
+	}
+		
+
+	float3 velocity = direction * amount;
+
+    _Write[idx] = _Read[idx] + velocity;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

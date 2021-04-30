@@ -31,11 +31,13 @@ Material:
         m_Texture: {fileID: 2800000, guid: e0a2b0af0d77f45478f599c74d453d6f, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    m_Ints: []
     m_Floats:
     - _Absorption: 60
     - _FireAbsorption: 40
-    - _SmokeAbsorption: 60
+    - _SmokeAbsorption: 0
     m_Colors:
     - _Color: {r: 0, g: 0, b: 0, a: 1}
-    - _SmokeColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SmokeColor: {r: 41.73181, g: 13.764943, b: 10.269085, a: 1}
+    - _SmokeSecondaryColor: {r: 33.89676, g: 10.756945, b: 9.583375, a: 1}
   m_BuildTextureStacks: []

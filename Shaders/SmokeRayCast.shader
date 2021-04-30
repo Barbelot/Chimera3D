@@ -7,7 +7,8 @@ Shader "3DFluidSim/SmokeRayCast"
 {
 	Properties
 	{
-		_SmokeColor("SmokeGradient", Color) = (0,0,0,1)
+		[HDR]_SmokeColor("SmokeGradient", Color) = (0,0,0,1)
+		[HDR]_SmokeSecondaryColor("SmokeSecondaryGradient", Color) = (0,0,0,1)
 		_SmokeAbsorption("SmokeAbsorbtion", float) = 60.0
 	}
 	SubShader 
@@ -29,6 +30,7 @@ Shader "3DFluidSim/SmokeRayCast"
 			#define NUM_SAMPLES 64
 			
 			float4 _SmokeColor;
+			float4 _SmokeSecondaryColor;
 			float _SmokeAbsorption;
 			uniform float3 _Translate, _Scale, _Resolution;
 			
@@ -188,7 +190,9 @@ Shader "3DFluidSim/SmokeRayCast"
         			if(alpha <= 0.01) break;
 			    }
 			    
-				return _SmokeColor * (1-alpha);
+				
+
+				return lerp(_SmokeColor, _SmokeSecondaryColor, alpha) * (1-alpha);
 			}
 			
 			ENDCG

@@ -21,9 +21,14 @@ namespace Chimera3D
 		[Header("ID")]
 		public string simulationID = "Main";
 
+		[Header("TargetFPS")]
+		public bool setTargetFPS = false;
+		public int targetFPS = 60;
+
 		[Header("Simulation")]
 		//You can change this or even use Time.DeltaTime but large time steps can cause numerical errors
 		public float m_timeStep = 6.0f;
+		[Space]
 		public ADVECTION m_advectionType = ADVECTION.NORMAL;
 		public Vector3Int m_resolution = new Vector3Int(128, 128, 128);
 		public Vector3 m_size = Vector3.one;
@@ -60,6 +65,7 @@ namespace Chimera3D
 
 		[Header("Compute Shaders")]
 		public ComputeShader m_applyImpulse;
+		public ComputeShader m_applyVelocityImpulse;
 		public ComputeShader m_applyAdvect;
 		public ComputeShader m_computeVorticity;
 		public ComputeShader m_computeDivergence;
@@ -85,6 +91,9 @@ namespace Chimera3D
 
 		private bool m_initialized = false;
 
+		private Vector3 m_tmpVector3 = Vector3.zero;
+		private Vector4 m_tmpVector4 = Vector4.zero;
+
 		#region MonoBehaviour Implementation
 
 		private void OnEnable() {
@@ -93,16 +102,12 @@ namespace Chimera3D
 				Initialize();
 		}
 
-		void Start() {
-			Application.targetFrameRate = 60;
-		}
-
 		void Update() {
 
 			if (!m_initialized)
 				Initialize();
 
-			float dt = Time.deltaTime * m_timeStep;
+			float dt = m_timeStep;
 
 			//First off advect any buffers that contain physical quantities like density or temperature by the 
 			//velocity field. Advection is what moves values around.
@@ -139,8 +144,21 @@ namespace Chimera3D
 			//Apply emitter impulse
 			for (int i = 0; i < m_emitters.Count; i++) {
 				//Adds a certain amount of density (the visible smoke) and temperate
-				ApplyGaussImpulse(dt, m_emitters[i].radius, m_emitters[i].densityAmount, GetBufferPosition(m_emitters[i].transform.position), m_density);
-				ApplyGaussImpulse(dt, m_emitters[i].radius, m_emitters[i].temperatureAmount, GetBufferPosition(m_emitters[i].transform.position), m_temperature);
+				if(m_emitters[i].densityAmount != 0)
+					ApplyGaussImpulse(dt, m_emitters[i].fluidEmissionRadius, m_emitters[i].densityAmount, GetBufferPosition(m_emitters[i].transform.position), m_density);
+
+				if (m_emitters[i].temperatureAmount != 0)
+					ApplyGaussImpulse(dt, m_emitters[i].fluidEmissionRadius, m_emitters[i].linkTemperatureToDensity ? m_emitters[i].densityAmount * 10.0f : m_emitters[i].temperatureAmount, GetBufferPosition(m_emitters[i].transform.position), m_temperature);
+
+				//Adds a certain amount of velocity
+				if (m_emitters[i].velocityAmount != 0) {
+					m_tmpVector3 = m_emitters[i].velocityDirection.normalized;
+					m_tmpVector4.x = m_tmpVector3.x;
+					m_tmpVector4.y = m_tmpVector3.y;
+					m_tmpVector4.z = m_tmpVector3.z;
+					m_tmpVector4.w = m_emitters[i].sphericalVelocity ? 1 : 0;
+					ApplyVelocityImpulse(dt, m_emitters[i].fluidEmissionRadius, m_emitters[i].velocityAmount, GetBufferPosition(m_emitters[i].transform.position), m_tmpVector4, m_velocity);
+				}
 			}
 
 			//The fuild sim math tends to remove the swirling movement of fluids.
@@ -188,6 +206,10 @@ namespace Chimera3D
 
 			if (m_initialized)
 				return;
+
+			//Target fps
+			if (setTargetFPS)
+				Application.targetFrameRate = targetFPS;
 
 			//Get kernels
 			m_gaussImpulseKernel = m_applyImpulse.FindKernel("GaussImpulse");
@@ -318,6 +340,22 @@ namespace Chimera3D
 			m_applyImpulse.SetBuffer(m_noiseImpulseKernel, "_Write", buffer[WRITE]);
 
 			m_applyImpulse.Dispatch(m_noiseImpulseKernel, (int)m_cachedResolution.x / NUM_THREADS, (int)m_cachedResolution.y / NUM_THREADS, (int)m_cachedResolution.z / NUM_THREADS);
+
+			Swap(buffer);
+		}
+
+		void ApplyVelocityImpulse(float dt, float radius, float amount, Vector4 pos, Vector4 direction, ComputeBuffer[] buffer) {
+			m_applyVelocityImpulse.SetVector("_Resolution", m_cachedResolution);
+			m_applyVelocityImpulse.SetFloat("_Radius", radius);
+			m_applyVelocityImpulse.SetFloat("_Amount", amount);
+			m_applyVelocityImpulse.SetFloat("_DeltaTime", dt);
+			m_applyVelocityImpulse.SetVector("_Pos", pos);
+			m_applyVelocityImpulse.SetVector("_Direction", direction);
+
+			m_applyVelocityImpulse.SetBuffer(0, "_Read", buffer[READ]);
+			m_applyVelocityImpulse.SetBuffer(0, "_Write", buffer[WRITE]);
+
+			m_applyVelocityImpulse.Dispatch(0, (int)m_cachedResolution.x / NUM_THREADS, (int)m_cachedResolution.y / NUM_THREADS, (int)m_cachedResolution.z / NUM_THREADS);
 
 			Swap(buffer);
 		}
